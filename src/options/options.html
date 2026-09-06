@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Copilot Default Model - 設定</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Copilot Default Model</h1>
+        <p>
+          Copilot Premium で毎回モデルを選ぶ手間を省きます。Chrome と Edge（制限あり）で動作します。
+        </p>
+      </header>
+
+      <section class="card">
+        <h2>基本設定</h2>
+
+        <label class="field">
+          <span>デフォルトモデル / モード</span>
+          <select id="modelId"></select>
+          <small id="modelDescription"></small>
+        </label>
+
+        <label class="toggle">
+          <input id="enabled" type="checkbox" />
+          <span>自動選択を有効化</span>
+        </label>
+
+        <label class="toggle">
+          <input id="applyOnLoad" type="checkbox" />
+          <span>ページ読み込み時に適用</span>
+        </label>
+
+        <label class="toggle">
+          <input id="applyOnNewChat" type="checkbox" />
+          <span>新しいチャット / 画面遷移時に適用</span>
+        </label>
+
+        <label class="field">
+          <span>手動変更後の待機時間（秒）</span>
+          <input id="respectManualChangeMs" type="number" min="0" max="120" step="1" />
+          <small>この時間内に自分でモデルを変えた場合は自動適用しません。</small>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>対応プリセット</h2>
+        <ul id="presetList"></ul>
+      </section>
+
+      <section class="card warning">
+        <h2>Microsoft Edge について</h2>
+        <p>
+          Edge 135 以降では <code>copilot.microsoft.com</code> へのコンテンツスクリプト注入が
+          ブラウザ側でブロックされる場合があります（Chrome では動作）。Edge で使う場合は Chrome
+          を使うか、Microsoft の制限解除を待つ必要があります。
+        </p>
+      </section>
+
+      <div class="actions">
+        <button id="save" type="button">設定を保存</button>
+        <button id="reapply" type="button" class="secondary">開いているタブに再適用</button>
+      </div>
+
+      <p id="status" class="status" aria-live="polite"></p>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

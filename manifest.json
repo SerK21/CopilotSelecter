@@ -1,0 +1,53 @@
+{
+  "manifest_version": 3,
+  "name": "Copilot Default Model",
+  "short_name": "Copilot Model",
+  "version": "1.0.0",
+  "description": "Copilot Premium のモデル / モードを毎回自動で選択します（Chrome / Edge）。",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "Copilot Default Model",
+    "default_popup": "src/popup/popup.html"
+  },
+  "options_ui": {
+    "page": "src/options/options.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://copilot.microsoft.com/*",
+    "https://copilot.com/*",
+    "https://www.bing.com/chat/*",
+    "https://m365.cloud.microsoft/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://copilot.microsoft.com/*",
+        "https://copilot.com/*",
+        "https://www.bing.com/chat/*",
+        "https://m365.cloud.microsoft/*"
+      ],
+      "js": ["src/content/shared-global.js", "src/content/injector.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://copilot.microsoft.com/*",
+        "https://copilot.com/*",
+        "https://www.bing.com/chat/*",
+        "https://m365.cloud.microsoft/*"
+      ],
+      "js": ["src/content/shared-global.js", "src/content/applier.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
