@@ -1,6 +1,8 @@
-# Copilot Default Model
+# CopilotSelecter
 
 Copilot Premium（`copilot.microsoft.com` など）で、毎回モデル / モードを手動選択する手間を省く Chrome / Edge 拡張機能です。
+
+リポジトリ: https://github.com/SerK21/CopilotSelecter
 
 ## できること
 
@@ -71,10 +73,9 @@ node --test tests/models.test.js
 このプロジェクトは単体で完結しています。新しい GitHub リポジトリを作る場合:
 
 ```bash
-git init
-git add .
-git commit -m "Initial commit: Copilot Default Model extension"
-gh repo create copilot-default-model --public --source=. --remote=origin --push
+git clone https://github.com/SerK21/CopilotSelecter.git
+cd CopilotSelecter
+python3 scripts/generate-icons.py
 ```
 
 ## ライセンス

@@ -1,5 +1,9 @@
 {
-  "name": "copilot-default-model",
+  "name": "copilotselecter",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SerK21/CopilotSelecter.git"
+  },
   "version": "1.0.0",
   "private": true,
   "type": "module",
