@@ -68,14 +68,21 @@ Edge でも同様に `edge://extensions` から読み込めます。
 node --test tests/models.test.js
 ```
 
-## 別リポジトリとして公開する場合
+## リポジトリ移行（CopilotSelecter）
 
-このプロジェクトは単体で完結しています。新しい GitHub リポジトリを作る場合:
+このコードは `SerK21/CopilotSelecter` 向けです。空のリポジトリへ初回プッシュする場合:
 
 ```bash
+# 方法1: スクリプト（gh ログイン済みならこれが簡単）
+./scripts/publish-to-copilotselecter.sh
+
+# 方法2: 手動
 git clone https://github.com/SerK21/CopilotSelecter.git
 cd CopilotSelecter
-python3 scripts/generate-icons.py
+git remote add source https://github.com/SerK21/Cursor.git
+git fetch source main
+git reset --hard source/main
+git push -u origin main
 ```
 
 ## ライセンス
