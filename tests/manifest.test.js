@@ -35,3 +35,17 @@ test("content scripts cover Copilot hosts", () => {
   assert.ok(matches.includes("https://copilot.microsoft.com/*"));
   assert.ok(manifest.content_scripts.every((entry) => entry.all_frames === true));
 });
+
+test("addon zip has manifest at root", () => {
+  const zipPath = join(root, "addon", "copilotselecter-chrome.zip");
+  const zip = readFileSync(zipPath);
+  // ZIP local file header starts with PK\x03\x04; central directory lists names.
+  const asString = zip.toString("binary");
+  assert.ok(zip[0] === 0x50 && zip[1] === 0x4b, "not a zip");
+  assert.match(asString, /manifest\.json/);
+});
+
+test("Windows setup exe is a PE binary", () => {
+  const exe = readFileSync(join(root, "addon", "CopilotSelecter-Setup.exe"));
+  assert.equal(exe.subarray(0, 2).toString("ascii"), "MZ");
+});

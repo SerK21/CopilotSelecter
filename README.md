@@ -6,38 +6,30 @@ Copilot Premium（`copilot.microsoft.com` など）で、毎回モデル / モ�
 
 ## Chrome への入れ方（自分の PC）
 
-Chrome ウェブストア未公開のため、**デベロッパーモードで読み込み**します。所要時間は約 1 分です。
+アドオン本体はリポジトリの [`addon/`](addon/) に置いてあります。
 
-### 1. 拡張のフォルダを用意する
+Chrome ウェブストアは使っていません。また **Google は `.exe` から拡張機能を黙って入れることを禁止している**ので、完全ワンクリックインストールはできません。その代わり、セットアップ EXE がファイル配置・パスコピー・拡張機能ページ起動までやります。最後に Chrome 側で 2 クリックだけ必要です。
 
-どちらか好きな方法で構いません。
+### いちばん楽な方法（Windows）
 
-**ZIP を使う場合**
+1. [`addon/CopilotSelecter-Setup.exe`](addon/CopilotSelecter-Setup.exe) をダウンロードして実行する  
+   （SmartScreen が出たら「詳細情報」→「実行」）
+2. Chrome の拡張機能ページで **デベロッパーモード** をオン
+3. **パッケージ化されていない拡張機能を読み込む** で、ダイアログに出たフォルダを選ぶ（パスはクリップボードにコピー済み）
 
-1. GitHub の [Releases](https://github.com/SerK21/CopilotSelecter/releases) から `copilotselecter-chrome.zip` をダウンロードする（Release がまだ無いときは [ソース ZIP](https://github.com/SerK21/CopilotSelecter/archive/refs/heads/main.zip) でも可）
-2. ZIP を解凍する
-3. 解凍先に `manifest.json` があることを確認する（ソース ZIP の場合は `CopilotSelecter-main` フォルダの中）
+### ZIP だけ使う場合（Windows / Mac / Linux 共通）
 
-**Git でクローンする場合**
+1. [`addon/copilotselecter-chrome.zip`](addon/copilotselecter-chrome.zip) をダウンロードして解凍する
+2. Chrome で `chrome://extensions` を開く
+3. **デベロッパーモード** をオン
+4. **パッケージ化されていない拡張機能を読み込む**
+5. 解凍したフォルダ（中に `manifest.json` がある方）を選ぶ
 
-```bash
-git clone https://github.com/SerK21/CopilotSelecter.git
-```
-
-クローンしたリポジトリのルートに `manifest.json` があります。アイコンはリポジトリに含まれているので、追加のビルドは不要です。
-
-### 2. Chrome に読み込む
-
-1. Google Chrome を開く
-2. アドレスバーに `chrome://extensions` と入力して Enter
-3. 右上の **デベロッパーモード** をオンにする
-4. **パッケージ化されていない拡張機能を読み込む** をクリック
-5. `manifest.json` があるフォルダを選択する
-6. ツールバーに **CopilotSelecter** のアイコンが出れば成功です（ピン留めすると使いやすいです）
+ソースから入れる場合はリポジトリをクローンし、ルート（`manifest.json` がある場所）を選んでください。アイコンはリポジトリに含まれているので、追加のビルドは不要です。
 
 以後 Chrome を再起動しても、そのフォルダを消さない限り拡張は残ります。コードを更新したら `chrome://extensions` の再読み込みボタンを押してください。
 
-### 3. 使う
+### 使う
 
 1. ツールバーのアイコンをクリック
 2. 使いたいモデル（例: Think deeper / Opus / GPT Thinking）を選んで **保存**
@@ -85,8 +77,8 @@ git clone https://github.com/SerK21/CopilotSelecter.git
 # ラベル一致ロジックの簡易テスト
 npm test
 
-# Chrome 読み込み用 ZIP（直下に manifest.json）
-bash scripts/pack-extension.sh
+# Chrome 用 ZIP と Windows セットアップ EXE を addon/ に出力
+bash scripts/build-release-assets.sh
 ```
 
 アイコンを作り直す場合のみ:
