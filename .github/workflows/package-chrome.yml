@@ -1,0 +1,26 @@
+name: Package Chrome extension
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pack extension zip
+        run: bash scripts/pack-extension.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: copilotselecter-chrome
+          path: dist/copilotselecter-chrome.zip
+      - name: Attach zip to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/copilotselecter-chrome.zip

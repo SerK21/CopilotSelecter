@@ -6,11 +6,14 @@
     SESSION_MODE_KEY,
     loadSettings,
   } = globalThis.CopilotDefaultModel;
+  const { isRendered, queryAllDeep, queryDeep } = globalThis.CopilotSelecterDom;
 
-  const LOG_PREFIX = "[Copilot Default Model]";
+  const LOG_PREFIX = "[CopilotSelecter]";
   const PICKER_TEST_IDS = [
     "mode-picker-dropdown",
     "composer-chat-mode-dropdown",
+    "chat-mode-dropdown",
+    "model-picker-dropdown",
   ];
 
   let manualOverrideUntil = 0;
@@ -24,12 +27,7 @@
   }
 
   function isInteractive(element) {
-    return Boolean(
-      element &&
-        !element.disabled &&
-        element.getAttribute("aria-disabled") !== "true" &&
-        element.offsetParent !== null,
-    );
+    return isRendered(element);
   }
 
   function getVisibleText(element) {
@@ -38,7 +36,7 @@
 
   function readCurrentPickerLabel() {
     for (const testId of PICKER_TEST_IDS) {
-      const trigger = document.querySelector(`[data-testid="${testId}"]`);
+      const trigger = queryDeep(`[data-testid="${testId}"]`);
       if (trigger) {
         const text =
           trigger.getAttribute("title") ||
@@ -50,9 +48,10 @@
       }
     }
 
-    const headerButton = document.querySelector(
-      'button[aria-haspopup="menu"][data-testid*="mode"]',
-    );
+    const headerButton =
+      queryDeep('button[aria-haspopup="menu"][data-testid*="mode"]') ||
+      queryDeep('button[aria-haspopup="menu"][aria-label*="mode" i]') ||
+      queryDeep('button[aria-haspopup="listbox"]');
     if (headerButton) {
       return (
         headerButton.getAttribute("title") ||
@@ -93,7 +92,7 @@
     ];
 
     for (const selector of selectors) {
-      const items = [...document.querySelectorAll(selector)].filter(isInteractive);
+      const items = queryAllDeep(selector).filter(isInteractive);
       if (items.length > 0) {
         return items;
       }
@@ -124,16 +123,17 @@
 
   function openPicker() {
     for (const testId of PICKER_TEST_IDS) {
-      const trigger = document.querySelector(`[data-testid="${testId}"]`);
+      const trigger = queryDeep(`[data-testid="${testId}"]`);
       if (isInteractive(trigger)) {
         trigger.click();
         return true;
       }
     }
 
-    const fallback = document.querySelector(
-      'button[aria-haspopup="menu"][data-testid*="mode"]',
-    );
+    const fallback =
+      queryDeep('button[aria-haspopup="menu"][data-testid*="mode"]') ||
+      queryDeep('button[aria-haspopup="menu"][aria-label*="model" i]') ||
+      queryDeep('button[aria-haspopup="menu"][aria-label*="モード"]');
     if (isInteractive(fallback)) {
       fallback.click();
       return true;
@@ -143,7 +143,7 @@
   }
 
   function clickComposerModeButton(preset) {
-    const buttons = [...document.querySelectorAll('[data-testid^="composer-chat-mode-"]')];
+    const buttons = queryAllDeep('[data-testid^="composer-chat-mode-"]');
     for (const button of buttons) {
       const label =
         button.getAttribute("title") ||

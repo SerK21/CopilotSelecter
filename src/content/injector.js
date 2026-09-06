@@ -24,7 +24,7 @@
       }
       sessionStorage.setItem(SESSION_MODE_KEY, next);
     } catch (error) {
-      console.debug("[Copilot Default Model] sessionStorage write failed", error);
+      console.debug("[CopilotSelecter] sessionStorage write failed", error);
     }
   }
 
