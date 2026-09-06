@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Copilot Default Model",
   "short_name": "Copilot Model",
-  "version": "1.0.0",
-  "description": "Copilot Premium のモデル / モードを毎回自動で選択します（Chrome / Edge）。",
+  "version": "1.2.4",
+  "description": "Copilot / Work IQ のモデルとモードを毎回自動で選択します。",
   "icons": {
     "16": "icons/icon-16.png",
     "48": "icons/icon-48.png",
@@ -18,36 +18,76 @@
     "open_in_tab": true
   },
   "background": {
-    "service_worker": "src/background.js",
-    "type": "module"
+    "service_worker": "src/background.js"
   },
-  "permissions": ["storage"],
+  "permissions": ["storage", "scripting", "tabs", "activeTab"],
   "host_permissions": [
     "https://copilot.microsoft.com/*",
     "https://copilot.com/*",
-    "https://www.bing.com/chat/*",
-    "https://m365.cloud.microsoft/*"
+    "https://*.bing.com/*",
+    "https://*.cloud.microsoft/*",
+    "https://*.microsoft.com/*",
+    "https://*.microsoft365.com/*",
+    "https://*.office.com/*",
+    "https://*.office365.com/*",
+    "https://m365copilot.com/*",
+    "https://*.m365copilot.com/*"
   ],
   "content_scripts": [
     {
       "matches": [
         "https://copilot.microsoft.com/*",
         "https://copilot.com/*",
-        "https://www.bing.com/chat/*",
-        "https://m365.cloud.microsoft/*"
+        "https://*.bing.com/*",
+        "https://*.cloud.microsoft/*",
+        "https://*.microsoft.com/*",
+        "https://*.microsoft365.com/*",
+        "https://*.office.com/*",
+        "https://*.office365.com/*",
+        "https://m365copilot.com/*",
+        "https://*.m365copilot.com/*"
       ],
-      "js": ["src/content/shared-global.js", "src/content/injector.js"],
-      "run_at": "document_start"
+      "js": ["src/content/page-bridge.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_origin_as_fallback": true,
+      "world": "MAIN"
     },
     {
       "matches": [
         "https://copilot.microsoft.com/*",
         "https://copilot.com/*",
-        "https://www.bing.com/chat/*",
-        "https://m365.cloud.microsoft/*"
+        "https://*.bing.com/*",
+        "https://*.cloud.microsoft/*",
+        "https://*.microsoft.com/*",
+        "https://*.microsoft365.com/*",
+        "https://*.office.com/*",
+        "https://*.office365.com/*",
+        "https://m365copilot.com/*",
+        "https://*.m365copilot.com/*"
+      ],
+      "js": ["src/content/shared-global.js", "src/content/injector.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_origin_as_fallback": true
+    },
+    {
+      "matches": [
+        "https://copilot.microsoft.com/*",
+        "https://copilot.com/*",
+        "https://*.bing.com/*",
+        "https://*.cloud.microsoft/*",
+        "https://*.microsoft.com/*",
+        "https://*.microsoft365.com/*",
+        "https://*.office.com/*",
+        "https://*.office365.com/*",
+        "https://m365copilot.com/*",
+        "https://*.m365copilot.com/*"
       ],
       "js": ["src/content/shared-global.js", "src/content/applier.js"],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "all_frames": true,
+      "match_origin_as_fallback": true
     }
   ]
 }

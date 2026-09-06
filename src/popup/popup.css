@@ -78,3 +78,16 @@ button.secondary {
 .status.error {
   color: #fca5a5;
 }
+
+.diag {
+  margin: 10px 0 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: #1e293b;
+  color: #93c5fd;
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 140px;
+  overflow: auto;
+}

@@ -7,13 +7,11 @@ Copilot Premium（`copilot.microsoft.com` など）で、毎回モデル / モ�
 ## できること
 
 - **デフォルトモデルを固定** — ポップアップまたは設定画面で一度選べば、以後自動でそのモデル / モードを選択します
-- **対応プリセット**
-  - Auto / Smart
-  - Think deeper（reasoning）
-  - Study and learn
-  - Search
-  - Claude Opus（表示名で一致）
-  - GPT Thinking / Quick response（GPT-5.6 / 5.5 系の表示名で一致）
+- **対応プリセット**（Work IQ / Copilot の入れ子メニュー含む）
+  - 自動 / クイック応答 / Think Deeper
+  - Study and learn / Search（個人 Copilot）
+  - GPT 5.6 Think Deeper / GPT 5.6 Quick response / GPT 5.5 Quick Response
+  - Claude Sonnet / Claude Opus
 - **新規チャットでも再適用** — 画面遷移や新しいチャット開始時にも設定を維持
 - **手動変更を尊重** — 自分でモデルを変えた直後は、一定時間自動適用しません
 
@@ -36,7 +34,7 @@ Edge でも同様に `edge://extensions` から読み込めます。
 
 1. 拡張機能をインストール
 2. ツールバーのアイコンをクリック
-3. 使いたいモデル（例: Think deeper / Opus / GPT Thinking）を選択して「保存」
+3. 使いたいモデル（例: GPT 5.6 Think Deeper / Sonnet / Opus）を選択して「保存」
 4. Copilot を開く（または既存タブをリロード）
 
 詳細設定は拡張機能の「詳細設定」画面から変更できます。
@@ -59,7 +57,10 @@ Edge でも同様に `edge://extensions` から読み込めます。
 - `https://copilot.microsoft.com/*`
 - `https://copilot.com/*`
 - `https://www.bing.com/chat/*`
-- `https://m365.cloud.microsoft.com/*`（M365 Copilot Web）
+- `https://m365.cloud.microsoft/*` および `https://m365.cloud.microsoft.com/*`（M365 Copilot / Work IQ）
+- `https://copilot.cloud.microsoft/*`
+- `https://www.office.com/chat/*`
+- `https://www.microsoft365.com/*`
 
 ## 開発
 

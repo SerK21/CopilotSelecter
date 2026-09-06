@@ -1,65 +1,43 @@
-import { MODEL_PRESETS } from "../shared/models.js";
-import { loadSettings, saveSettings } from "../shared/storage.js";
+const STORAGE_KEY = "copilotDefaultModelSettings";
 
 const modelSelect = document.getElementById("modelId");
-const modelDescription = document.getElementById("modelDescription");
 const enabledInput = document.getElementById("enabled");
 const applyOnLoadInput = document.getElementById("applyOnLoad");
 const applyOnNewChatInput = document.getElementById("applyOnNewChat");
 const respectManualChangeMsInput = document.getElementById("respectManualChangeMs");
-const presetList = document.getElementById("presetList");
 const saveButton = document.getElementById("save");
 const reapplyButton = document.getElementById("reapply");
 const status = document.getElementById("status");
 
-function setStatus(message, isError = false) {
+function setStatus(message, isError) {
   status.textContent = message;
-  status.classList.toggle("error", isError);
+  status.classList.toggle("error", Boolean(isError));
 }
 
-function renderPresetList() {
-  presetList.replaceChildren();
-  for (const preset of MODEL_PRESETS) {
-    const item = document.createElement("li");
-    item.innerHTML = `<strong>${preset.name}</strong> — ${preset.description}`;
-    presetList.appendChild(item);
-  }
+async function loadSettings() {
+  const stored = await chrome.storage.sync.get(STORAGE_KEY);
+  return stored[STORAGE_KEY] || {};
 }
 
-function updateDescription(modelId) {
-  const preset = MODEL_PRESETS.find((item) => item.id === modelId);
-  modelDescription.textContent = preset?.description ?? "";
-}
-
-function populateModels(selectedId) {
-  modelSelect.replaceChildren();
-  for (const preset of MODEL_PRESETS) {
-    const option = document.createElement("option");
-    option.value = preset.id;
-    option.textContent = preset.name;
-    if (preset.id === selectedId) {
-      option.selected = true;
-    }
-    modelSelect.appendChild(option);
-  }
-  updateDescription(selectedId);
+async function saveSettings(partial) {
+  const current = await loadSettings();
+  const next = { ...current, ...partial };
+  await chrome.storage.sync.set({ [STORAGE_KEY]: next });
+  return next;
 }
 
 async function init() {
-  renderPresetList();
   const settings = await loadSettings();
-  populateModels(settings.modelId);
-  enabledInput.checked = settings.enabled;
-  applyOnLoadInput.checked = settings.applyOnLoad;
-  applyOnNewChatInput.checked = settings.applyOnNewChat;
+  if (settings.modelId) {
+    modelSelect.value = settings.modelId;
+  }
+  enabledInput.checked = settings.enabled !== false;
+  applyOnLoadInput.checked = settings.applyOnLoad !== false;
+  applyOnNewChatInput.checked = settings.applyOnNewChat !== false;
   respectManualChangeMsInput.value = String(
-    Math.round((settings.respectManualChangeMs ?? 15000) / 1000),
+    Math.round((settings.respectManualChangeMs || 15000) / 1000),
   );
 }
-
-modelSelect.addEventListener("change", () => {
-  updateDescription(modelSelect.value);
-});
 
 async function handleSave() {
   try {
@@ -71,8 +49,10 @@ async function handleSave() {
       applyOnNewChat: applyOnNewChatInput.checked,
       respectManualChangeMs: Math.max(0, seconds) * 1000,
     });
-    await chrome.runtime.sendMessage({ type: "REAPPLY_ALL_TABS" });
-    setStatus("設定を保存し、開いている Copilot タブへ反映しました。");
+    const response = await chrome.runtime.sendMessage({ type: "REAPPLY_ALL_TABS" });
+    setStatus(
+      `設定を保存しました（対象タブ: ${response && response.tabCount ? response.tabCount : 0}）`,
+    );
   } catch (error) {
     setStatus(`保存に失敗しました: ${error.message}`, true);
   }
@@ -81,7 +61,7 @@ async function handleSave() {
 async function handleReapply() {
   try {
     const response = await chrome.runtime.sendMessage({ type: "REAPPLY_ALL_TABS" });
-    setStatus(`再適用しました（対象タブ: ${response?.tabCount ?? 0}）`);
+    setStatus(`再適用しました（対象タブ: ${response && response.tabCount ? response.tabCount : 0}）`);
   } catch (error) {
     setStatus(`再適用に失敗しました: ${error.message}`, true);
   }
@@ -89,5 +69,4 @@ async function handleReapply() {
 
 saveButton.addEventListener("click", handleSave);
 reapplyButton.addEventListener("click", handleReapply);
-
 init();

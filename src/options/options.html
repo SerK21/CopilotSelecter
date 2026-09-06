@@ -20,7 +20,22 @@
 
         <label class="field">
           <span>デフォルトモデル / モード</span>
-          <select id="modelId"></select>
+          <select id="modelId">
+            <optgroup label="モード">
+              <option value="smart">自動</option>
+              <option value="quick">クイック応答</option>
+              <option value="reasoning">Think Deeper</option>
+            </optgroup>
+            <optgroup label="GPT (OpenAI)">
+              <option value="gpt-thinking" selected>GPT 5.6 Think Deeper</option>
+              <option value="gpt-quick">GPT 5.6 Quick response</option>
+              <option value="gpt-55-quick">GPT 5.5 Quick Response</option>
+            </optgroup>
+            <optgroup label="Claude (Anthropic)">
+              <option value="sonnet">Sonnet</option>
+              <option value="opus">Opus</option>
+            </optgroup>
+          </select>
           <small id="modelDescription"></small>
         </label>
 
@@ -48,7 +63,16 @@
 
       <section class="card">
         <h2>対応プリセット</h2>
-        <ul id="presetList"></ul>
+        <ul id="presetList">
+          <li><strong>自動</strong> — 考える時間の長さを自動で決める</li>
+          <li><strong>クイック応答</strong> — すぐに回答する</li>
+          <li><strong>Think Deeper</strong> — 長く考える（トップレベル）</li>
+          <li><strong>GPT 5.6 Think Deeper</strong> — GPT サブメニュー</li>
+          <li><strong>GPT 5.6 Quick response</strong> — GPT サブメニュー</li>
+          <li><strong>GPT 5.5 Quick Response</strong> — GPT サブメニュー</li>
+          <li><strong>Sonnet</strong> — Claude サブメニュー</li>
+          <li><strong>Opus</strong> — Claude サブメニュー</li>
+        </ul>
       </section>
 
       <section class="card warning">
@@ -67,6 +91,6 @@
 
       <p id="status" class="status" aria-live="polite"></p>
     </main>
-    <script type="module" src="options.js"></script>
+    <script src="options.js"></script>
   </body>
 </html>

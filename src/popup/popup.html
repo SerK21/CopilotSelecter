@@ -10,26 +10,45 @@
     <main>
       <header>
         <h1>Copilot Default Model</h1>
-        <p>固定モデルを自動選択</p>
+        <p>Work IQ のモデルを固定します</p>
       </header>
 
       <label class="field">
         <span>デフォルトモデル</span>
-        <select id="modelId"></select>
+        <select id="modelId">
+          <optgroup label="モード">
+            <option value="smart">自動</option>
+            <option value="quick">クイック応答</option>
+            <option value="reasoning">Think Deeper</option>
+          </optgroup>
+          <optgroup label="GPT (OpenAI)">
+            <option value="gpt-thinking" selected>GPT 5.6 Think Deeper</option>
+            <option value="gpt-quick">GPT 5.6 Quick response</option>
+            <option value="gpt-55-quick">GPT 5.5 Quick Response</option>
+          </optgroup>
+          <optgroup label="Claude (Anthropic)">
+            <option value="sonnet">Sonnet</option>
+            <option value="opus">Opus</option>
+          </optgroup>
+        </select>
       </label>
 
       <label class="toggle">
-        <input id="enabled" type="checkbox" />
+        <input id="enabled" type="checkbox" checked />
         <span>自動選択を有効化</span>
       </label>
 
       <div class="actions">
-        <button id="save" type="button">保存</button>
+        <button id="save" type="button">保存して適用</button>
+        <button id="applyNow" type="button" class="secondary">このタブに適用</button>
+      </div>
+      <div class="actions">
         <button id="openOptions" type="button" class="secondary">詳細設定</button>
       </div>
 
       <p id="status" class="status" aria-live="polite"></p>
+      <pre id="diag" class="diag" aria-live="polite"></pre>
     </main>
-    <script type="module" src="popup.js"></script>
+    <script src="popup.js"></script>
   </body>
 </html>

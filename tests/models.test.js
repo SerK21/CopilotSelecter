@@ -10,17 +10,39 @@ test("getPresetById falls back to smart", () => {
   assert.equal(getPresetById("unknown").id, "smart");
 });
 
-test("labelMatches handles think deeper", () => {
-  assert.equal(labelMatches("Think deeper", ["Think deeper"]), true);
-  assert.equal(labelMatches("GPT-5.6 Think Deeper", ["Think Deeper"]), true);
+test("top-level Think Deeper does not match GPT submenu item", () => {
+  const preset = getPresetById("reasoning");
+  assert.equal(
+    labelMatches("GPT 5.6 Think Deeper", preset.matchLabels, preset.excludeLabels),
+    false,
+  );
+  assert.ok(scoreLabelMatch("Think Deeper", preset.matchLabels, preset.excludeLabels) > 0);
 });
 
-test("scoreLabelMatch prefers exact matches", () => {
+test("quick response does not match GPT quick items", () => {
+  const preset = getPresetById("quick");
+  assert.equal(labelMatches("クイック応答", preset.matchLabels), true);
+  assert.equal(labelMatches("GPT 5.6 Quick response", preset.matchLabels), false);
+});
+
+test("GPT 5.6 Think Deeper is a dedicated preset", () => {
+  const preset = getPresetById("gpt-thinking");
+  assert.equal(preset.name, "GPT 5.6 Think Deeper");
+  assert.ok(labelMatches("GPT 5.6 Think Deeper", preset.matchLabels));
+  assert.equal(labelMatches("Think Deeper", preset.matchLabels), false);
+});
+
+test("Claude submenu items do not match the parent row", () => {
+  const sonnet = getPresetById("sonnet");
+  const opus = getPresetById("opus");
+  assert.equal(labelMatches("Claude (Anthropic)", sonnet.matchLabels), false);
+  assert.equal(labelMatches("Claude (Anthropic)", opus.matchLabels), false);
+  assert.ok(labelMatches("Sonnet", sonnet.matchLabels));
+  assert.ok(labelMatches("Opus", opus.matchLabels));
+});
+
+test("scoreLabelMatch prefers exact and prefix matches", () => {
   const exact = scoreLabelMatch("Claude Opus", ["Opus", "Claude Opus"]);
   const partial = scoreLabelMatch("Claude Opus 5", ["Opus"]);
   assert.ok(exact > partial);
-});
-
-test("opus preset exists", () => {
-  assert.equal(getPresetById("opus").name, "Claude Opus");
 });

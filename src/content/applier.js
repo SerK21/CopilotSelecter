@@ -1,295 +1,486 @@
 (function bootstrapApplier() {
+  if (globalThis.__copilotSelecterApplier) {
+    return;
+  }
+  globalThis.__copilotSelecterApplier = true;
+
+  const api = globalThis.CopilotDefaultModel;
+  if (!api) {
+    return;
+  }
+
   const {
     getPresetById,
     labelMatches,
     scoreLabelMatch,
+    normalizeLabel,
     SESSION_MODE_KEY,
     loadSettings,
-  } = globalThis.CopilotDefaultModel;
+  } = api;
 
-  const LOG_PREFIX = "[Copilot Default Model]";
-  const PICKER_TEST_IDS = [
-    "mode-picker-dropdown",
-    "composer-chat-mode-dropdown",
+  const LOG_PREFIX = "[CopilotSelecter]";
+  const STATUS_KEY = "copilotSelecterStatus";
+  const ACT_EVENT = "copilot-selecter-act";
+  const TRIGGER_LABELS = [
+    "自動",
+    "Auto",
+    "Smart",
+    "クイック応答",
+    "Quick response",
+    "Think Deeper",
+    "Think deeper",
+    "GPT 5.6",
+    "GPT 5.5",
+    "Sonnet",
+    "Opus",
   ];
 
-  let manualOverrideUntil = 0;
-  let respectManualChangeMs = 15000;
+  let applying = false;
+  let applyAttempts = 0;
   let lastAppliedSignature = "";
-  let observer = null;
+  let settingsCache = null;
   let debounceTimer = null;
+  let silentStyle = null;
 
   function log(...args) {
-    console.debug(LOG_PREFIX, ...args);
+    console.info(LOG_PREFIX, ...args);
   }
 
-  function isInteractive(element) {
-    return Boolean(
-      element &&
-        !element.disabled &&
-        element.getAttribute("aria-disabled") !== "true" &&
-        element.offsetParent !== null,
-    );
+  function wait(ms) {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
   }
 
-  function getVisibleText(element) {
-    return (element?.textContent ?? "").replace(/\s+/g, " ").trim();
+  function nextFrame() {
+    return new Promise((resolve) => {
+      window.requestAnimationFrame(() => window.requestAnimationFrame(resolve));
+    });
   }
 
-  function readCurrentPickerLabel() {
-    for (const testId of PICKER_TEST_IDS) {
-      const trigger = document.querySelector(`[data-testid="${testId}"]`);
-      if (trigger) {
-        const text =
-          trigger.getAttribute("title") ||
-          trigger.getAttribute("aria-label") ||
-          getVisibleText(trigger);
-        if (text) {
-          return text;
-        }
+  function setSilentUi(enabled) {
+    if (enabled) {
+      document.documentElement.setAttribute("data-cdm-silent", "1");
+      if (!silentStyle) {
+        silentStyle = document.createElement("style");
+        silentStyle.id = "cdm-silent-style";
+        silentStyle.textContent = `
+html[data-cdm-silent] [role="menu"],
+html[data-cdm-silent] [class*="MenuPopover"],
+html[data-cdm-silent] [class*="fui-MenuPopover"],
+html[data-cdm-silent] [class*="fui-MenuList"] {
+  transform: translate3d(-120vw, 0, 0) !important;
+}
+`;
+        document.documentElement.appendChild(silentStyle);
+      }
+      return;
+    }
+    document.documentElement.removeAttribute("data-cdm-silent");
+  }
+
+  async function report(status, extra = {}) {
+    const payload = {
+      status,
+      href: location.href,
+      frame: window === window.top ? "top" : "iframe",
+      at: new Date().toISOString(),
+      ...extra,
+    };
+    log(status, payload);
+    try {
+      await chrome.storage.local.set({ [STATUS_KEY]: payload });
+    } catch {
+      // Ignore storage failures in restricted frames.
+    }
+  }
+
+  function isVisible(element) {
+    if (!(element instanceof Element)) {
+      return false;
+    }
+    if (element.getAttribute("aria-disabled") === "true" || element.disabled) {
+      return false;
+    }
+    const style = window.getComputedStyle(element);
+    if (
+      style.display === "none" ||
+      style.visibility === "hidden" ||
+      Number(style.opacity) === 0
+    ) {
+      return false;
+    }
+    const rect = element.getBoundingClientRect();
+    return rect.width > 2 && rect.height > 2;
+  }
+
+  function walkElements(root, visit) {
+    const tree = root.querySelectorAll ? [root, ...root.querySelectorAll("*")] : [root];
+    for (const element of tree) {
+      if (!(element instanceof Element)) {
+        continue;
+      }
+      visit(element);
+      if (element.shadowRoot) {
+        walkElements(element.shadowRoot, visit);
+      }
+    }
+  }
+
+  function allElements() {
+    const items = [];
+    walkElements(document.documentElement, (element) => items.push(element));
+    return items;
+  }
+
+  function visibleText(element) {
+    const inner = (element.innerText || element.textContent || "").replace(/\s+/g, " ").trim();
+    if (inner) {
+      return inner;
+    }
+    return (
+      element.getAttribute?.("aria-label") ||
+      element.getAttribute?.("title") ||
+      ""
+    ).replace(/\s+/g, " ").trim();
+  }
+
+  function looksLikeCopilot() {
+    const href = location.href;
+    if (/copilot|bing\.com\/chat|office\.com\/chat|microsoft365\.com\/chat|m365\.cloud\.microsoft/i.test(href)) {
+      return true;
+    }
+    if (document.querySelector('[data-testid="mode-picker-dropdown"], [data-testid="composer-chat-mode-dropdown"]')) {
+      return true;
+    }
+    const snippet = document.body?.innerText?.slice(0, 8000) || "";
+    return snippet.includes("Work IQ");
+  }
+
+  function findBestByText(patterns, excludeLabels = [], { preferShort = true, skipWorkIq = true } = {}) {
+    let best = null;
+    let bestScore = 0;
+    let bestLength = Infinity;
+
+    for (const element of allElements()) {
+      if (!isVisible(element)) {
+        continue;
+      }
+      const label = visibleText(element);
+      if (!label || label.length > 180) {
+        continue;
+      }
+      if (skipWorkIq && /work iq/i.test(label)) {
+        continue;
+      }
+      const score = scoreLabelMatch(label, patterns, excludeLabels);
+      if (score <= 0) {
+        continue;
+      }
+      const length = normalizeLabel(label).length;
+      if (score > bestScore || (preferShort && score === bestScore && length < bestLength)) {
+        best = element;
+        bestScore = score;
+        bestLength = length;
       }
     }
 
-    const headerButton = document.querySelector(
-      'button[aria-haspopup="menu"][data-testid*="mode"]',
-    );
-    if (headerButton) {
-      return (
-        headerButton.getAttribute("title") ||
-        headerButton.getAttribute("aria-label") ||
-        getVisibleText(headerButton)
-      );
-    }
-
-    return "";
+    return bestScore > 0 ? best : null;
   }
 
-  function isAlreadySelected(preset) {
-    const currentLabel = readCurrentPickerLabel();
-    if (!currentLabel) {
+  function clickableAncestor(element) {
+    let node = element;
+    for (let depth = 0; depth < 6 && node; depth += 1) {
+      if (
+        node.matches?.(
+          'button, a, [role="button"], [role="menuitem"], [role="menuitemradio"], [role="option"], [role="combobox"], [tabindex]',
+        )
+      ) {
+        return node;
+      }
+      node = node.parentElement;
+    }
+    return element;
+  }
+
+  function pageAct(element, action) {
+    const target = clickableAncestor(element);
+    const token = `cdm-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    target.setAttribute("data-cdm-token", token);
+    target.dispatchEvent(
+      new CustomEvent(ACT_EVENT, {
+        bubbles: true,
+        composed: true,
+        detail: { action, token },
+      }),
+    );
+    if (action === "click" && typeof target.click === "function") {
+      target.click();
+    }
+  }
+
+  function pageKey(key) {
+    document.dispatchEvent(
+      new CustomEvent(ACT_EVENT, {
+        bubbles: true,
+        composed: true,
+        detail: { action: "key", key },
+      }),
+    );
+  }
+
+  async function waitForMenuItems(timeoutMs = 500) {
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      const items = [...document.querySelectorAll('[role="menuitem"], [role="menuitemradio"]')].filter(
+        isVisible,
+      );
+      if (items.length > 0) {
+        return items;
+      }
+      await nextFrame();
+    }
+    return [];
+  }
+
+  async function keyboardSelect(preset) {
+    const paths = {
+      smart: { downs: 0 },
+      quick: { downs: 1 },
+      reasoning: { downs: 2 },
+      "gpt-thinking": { downs: 3, right: true, subDowns: 0 },
+      "gpt-quick": { downs: 3, right: true, subDowns: 1 },
+      "gpt-55-quick": { downs: 3, right: true, subDowns: 2 },
+      sonnet: { downs: 4, right: true, subDowns: 0 },
+      opus: { downs: 4, right: true, subDowns: 1 },
+    };
+    const path = paths[preset.id];
+    if (!path) {
       return false;
     }
 
-    return labelMatches(currentLabel, preset.matchLabels);
+    pageKey("Home");
+    await nextFrame();
+    for (let i = 0; i < path.downs; i += 1) {
+      pageKey("ArrowDown");
+      await nextFrame();
+    }
+    if (path.right) {
+      pageKey("ArrowRight");
+      await nextFrame();
+      for (let i = 0; i < path.subDowns; i += 1) {
+        pageKey("ArrowDown");
+        await nextFrame();
+      }
+    }
+    pageKey("Enter");
+    await report("clicked-keyboard", { modelId: preset.id, path });
+    return true;
   }
 
   function applySessionMode(modeKey) {
     if (!modeKey) {
       return;
     }
-
     try {
       sessionStorage.setItem(SESSION_MODE_KEY, JSON.stringify(modeKey));
     } catch (error) {
-      log("sessionStorage update failed", error);
+      log("sessionStorage failed", error);
     }
   }
 
-  function findMenuItems() {
-    const selectors = [
-      '[data-testid$="-menu"] [role="menuitem"]',
-      '[role="menu"] [role="menuitem"]',
-      '[data-radix-menu-content] [role="menuitem"]',
-    ];
-
-    for (const selector of selectors) {
-      const items = [...document.querySelectorAll(selector)].filter(isInteractive);
-      if (items.length > 0) {
-        return items;
-      }
+  function findPickerTrigger() {
+    const byId = document.getElementById("gptModeSwitcher");
+    if (byId && isVisible(byId)) {
+      return byId;
     }
 
-    return [];
+    return [...document.querySelectorAll('button[aria-haspopup="menu"]')].find((button) => {
+      const label = button.getAttribute("aria-label") || "";
+      return /モデル\s*セレクター|model selector/i.test(label) && isVisible(button);
+    }) || null;
   }
 
-  function findBestMenuItem(preset) {
-    const items = findMenuItems();
-    let bestItem = null;
-    let bestScore = 0;
-
-    for (const item of items) {
-      const label =
-        item.getAttribute("title") ||
-        item.getAttribute("aria-label") ||
-        getVisibleText(item);
-      const score = scoreLabelMatch(label, preset.matchLabels);
-      if (score > bestScore) {
-        bestScore = score;
-        bestItem = item;
-      }
+  async function openPicker() {
+    const trigger = findPickerTrigger();
+    if (!trigger) {
+      return false;
     }
-
-    return bestScore > 0 ? bestItem : null;
+    pageAct(trigger, "click");
+    await wait(250);
+    return true;
   }
 
-  function openPicker() {
-    for (const testId of PICKER_TEST_IDS) {
-      const trigger = document.querySelector(`[data-testid="${testId}"]`);
-      if (isInteractive(trigger)) {
-        trigger.click();
-        return true;
-      }
+  function alreadyApplied(preset) {
+    const trigger = findPickerTrigger();
+    if (!trigger) {
+      return false;
+    }
+    return scoreLabelMatch(visibleText(trigger), preset.matchLabels, preset.excludeLabels || []) >= 80;
+  }
+
+  async function applyViaUi(preset) {
+    const trigger = findPickerTrigger();
+    if (!trigger) {
+      await report("picker-not-found", {
+        modelId: preset.id,
+        hasSwitcher: Boolean(document.getElementById("gptModeSwitcher")),
+      });
+      return false;
     }
 
-    const fallback = document.querySelector(
-      'button[aria-haspopup="menu"][data-testid*="mode"]',
-    );
-    if (isInteractive(fallback)) {
-      fallback.click();
+    if (alreadyApplied(preset)) {
+      await report("already-selected", { modelId: preset.id, trigger: visibleText(trigger) });
       return true;
     }
 
-    return false;
-  }
+    setSilentUi(true);
+    try {
+      pageAct(trigger, "click");
+      const items = await waitForMenuItems(480);
+      const itemLabels = items.map((item) => visibleText(item)).slice(0, 12);
 
-  function clickComposerModeButton(preset) {
-    const buttons = [...document.querySelectorAll('[data-testid^="composer-chat-mode-"]')];
-    for (const button of buttons) {
-      const label =
-        button.getAttribute("title") ||
-        button.getAttribute("aria-label") ||
-        getVisibleText(button);
-      if (labelMatches(label, preset.matchLabels) && isInteractive(button)) {
-        button.click();
+      if (items.length > 0) {
+        if (preset.parentLabels?.length) {
+          const parent =
+            items.find((item) => scoreLabelMatch(visibleText(item), preset.parentLabels) > 0) ||
+            findBestByText(preset.parentLabels);
+          if (parent) {
+            pageAct(parent, "hover");
+            await nextFrame();
+            pageAct(parent, "click");
+            await nextFrame();
+          }
+        }
+
+        const leaf =
+          findBestByText(preset.matchLabels, preset.excludeLabels || []) ||
+          items.find(
+            (item) => scoreLabelMatch(visibleText(item), preset.matchLabels, preset.excludeLabels || []) > 0,
+          );
+        if (leaf) {
+          pageAct(leaf, "click");
+          await report("clicked", { modelId: preset.id, label: visibleText(leaf), silent: true });
+          return true;
+        }
+      }
+
+      const keyed = await keyboardSelect(preset);
+      if (keyed) {
         return true;
       }
+
+      await report("parent-not-found", {
+        modelId: preset.id,
+        itemCount: items.length,
+        itemLabels,
+        trigger: visibleText(trigger),
+        switcherId: trigger.id,
+      });
+      return false;
+    } finally {
+      pageKey("Escape");
+      await nextFrame();
+      setSilentUi(false);
     }
-    return false;
-  }
-
-  function markManualOverride() {
-    manualOverrideUntil = Date.now() + respectManualChangeMs;
-  }
-
-  function attachManualOverrideListeners() {
-    const selectors = [
-      ...PICKER_TEST_IDS.map((id) => `[data-testid="${id}"]`),
-      '[data-testid^="composer-chat-mode-"]',
-      '[data-testid$="-menu"] [role="menuitem"]',
-    ].join(",");
-
-    document.addEventListener(
-      "click",
-      (event) => {
-        const target = event.target;
-        if (!(target instanceof Element)) {
-          return;
-        }
-        if (target.closest(selectors)) {
-          markManualOverride();
-        }
-      },
-      true,
-    );
   }
 
   async function applyPreset(settings) {
-    if (!settings.enabled) {
+    if (!settings?.enabled || applying) {
       return;
     }
-
-    if (Date.now() < manualOverrideUntil) {
+    if (!looksLikeCopilot()) {
+      return;
+    }
+    if (!findPickerTrigger()) {
+      await report("waiting-for-selector", { modelId: getPresetById(settings.modelId).id });
       return;
     }
 
     const preset = getPresetById(settings.modelId);
-    const signature = `${preset.id}:${location.pathname}`;
-    if (signature === lastAppliedSignature && isAlreadySelected(preset)) {
+    const signature = `${preset.id}:${location.href}`;
+    if (signature === lastAppliedSignature) {
       return;
     }
 
-    if (isAlreadySelected(preset)) {
-      lastAppliedSignature = signature;
-      return;
-    }
-
-    if (preset.modeKey) {
+    applying = true;
+    applyAttempts += 1;
+    try {
+      await report("applying", { modelId: preset.id, attempt: applyAttempts });
       applySessionMode(preset.modeKey);
-    }
-
-    if (clickComposerModeButton(preset)) {
-      lastAppliedSignature = signature;
-      log("applied via composer button", preset.id);
-      return;
-    }
-
-    const opened = openPicker();
-    if (!opened) {
-      return;
-    }
-
-    window.setTimeout(() => {
-      const menuItem = findBestMenuItem(preset);
-      if (menuItem) {
-        menuItem.click();
+      const applied = await applyViaUi(preset);
+      if (applied) {
         lastAppliedSignature = signature;
-        log("applied via picker menu", preset.id);
-        return;
+      } else if (applyAttempts < 3) {
+        window.setTimeout(() => {
+          applying = false;
+          applyPreset(settings);
+        }, 400);
       }
-
-      document.dispatchEvent(
-        new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
-      );
-    }, 120);
+    } finally {
+      applying = false;
+    }
   }
 
   function scheduleApply(settings) {
     window.clearTimeout(debounceTimer);
     debounceTimer = window.setTimeout(() => {
       applyPreset(settings);
-    }, 250);
+    }, 50);
   }
 
   async function start() {
-    const settings = await loadSettings();
-    respectManualChangeMs = settings.respectManualChangeMs ?? 15000;
-    if (!settings.enabled) {
-      log("disabled");
+    settingsCache = await loadSettings();
+    if (!settingsCache.enabled) {
+      await report("disabled");
       return;
     }
 
-    attachManualOverrideListeners();
-    scheduleApply(settings);
+    function armSwitcherWait() {
+      const started = Date.now();
+      const timer = window.setInterval(() => {
+        if (findPickerTrigger()) {
+          window.clearInterval(timer);
+          scheduleApply(settingsCache);
+          return;
+        }
+        if (Date.now() - started > 20000) {
+          window.clearInterval(timer);
+        }
+      }, 150);
+    }
 
-    observer = new MutationObserver(() => scheduleApply(settings));
-    observer.observe(document.documentElement, {
-      childList: true,
-      subtree: true,
-    });
-
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== "sync" || !changes.copilotDefaultModelSettings) {
-        return;
-      }
-
-      const next = {
-        ...settings,
-        ...changes.copilotDefaultModelSettings.newValue,
-      };
-      Object.assign(settings, next);
-      respectManualChangeMs = settings.respectManualChangeMs ?? 15000;
-      lastAppliedSignature = "";
-      scheduleApply(settings);
-    });
-
-    chrome.runtime.onMessage.addListener((message) => {
-      if (message?.type === "REAPPLY_DEFAULT_MODEL") {
-        lastAppliedSignature = "";
-        manualOverrideUntil = 0;
-        scheduleApply(settings);
-      }
-    });
+    await report("waiting-for-selector");
+    armSwitcherWait();
 
     let previousPath = location.pathname;
     window.setInterval(() => {
       if (location.pathname !== previousPath) {
         previousPath = location.pathname;
-        if (settings.applyOnNewChat) {
-          lastAppliedSignature = "";
-          scheduleApply(settings);
-        }
+        lastAppliedSignature = "";
+        applyAttempts = 0;
+        armSwitcherWait();
       }
-    }, 1000);
+    }, 800);
+
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== "sync" || !changes.copilotDefaultModelSettings) {
+        return;
+      }
+      settingsCache = {
+        ...settingsCache,
+        ...changes.copilotDefaultModelSettings.newValue,
+      };
+      lastAppliedSignature = "";
+      applyAttempts = 0;
+      scheduleApply(settingsCache);
+    });
+
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message?.type === "REAPPLY_DEFAULT_MODEL") {
+        lastAppliedSignature = "";
+        applyAttempts = 0;
+        scheduleApply(settingsCache);
+      }
+    });
   }
 
   if (document.readyState === "loading") {

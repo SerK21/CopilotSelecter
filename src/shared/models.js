@@ -1,78 +1,96 @@
-/** @typedef {{ id: string, name: string, description: string, modeKey: string | null, matchLabels: string[] }} ModelPreset */
+/** @typedef {{ id: string, name: string, description: string, modeKey: string | null, matchLabels: string[], parentLabels?: string[] }} ModelPreset */
 
 /** @type {ModelPreset[]} */
 export const MODEL_PRESETS = [
   {
     id: "smart",
-    name: "Auto / Smart",
-    description: "Copilot の標準モード（自動）",
+    name: "自動",
+    description: "考える時間の長さを自動で決める標準モード",
     modeKey: "smart",
-    matchLabels: ["Auto", "Smart", "スマート", "自動", "Default"],
+    matchLabels: ["自動", "Auto", "Smart", "スマート"],
+  },
+  {
+    id: "quick",
+    name: "クイック応答",
+    description: "すぐに回答するモード",
+    modeKey: null,
+    matchLabels: ["クイック応答"],
   },
   {
     id: "reasoning",
-    name: "Think deeper",
-    description: "より深く考える（reasoning モード）",
+    name: "Think Deeper",
+    description: "より良い回答のために長く考える（トップレベル）",
     modeKey: "reasoning",
-    matchLabels: ["Think deeper", "Think Deeper", "より深く考える", "深く考える"],
+    matchLabels: ["Think Deeper", "Think deeper", "より深く考える"],
+    excludeLabels: ["GPT"],
   },
   {
     id: "study",
     name: "Study and learn",
-    description: "学習・クイズ向けモード",
+    description: "学習・クイズ向けモード（個人 Copilot）",
     modeKey: "study",
-    matchLabels: ["Study and learn", "Study", "学習", "学習と学ぶ"],
+    matchLabels: ["Study and learn", "Study", "学習と学ぶ"],
   },
   {
     id: "search",
     name: "Search",
-    description: "Web 検索重視モード",
+    description: "Web 検索重視モード（個人 Copilot）",
     modeKey: "search",
-    matchLabels: ["Search", "検索"],
+    matchLabels: ["Search"],
+  },
+  {
+    id: "gpt-thinking",
+    name: "GPT 5.6 Think Deeper",
+    description: "GPT サブメニューの Think Deeper",
+    modeKey: null,
+    parentLabels: ["GPT", "OpenAI"],
+    matchLabels: ["GPT 5.6 Think Deeper", "GPT-5.6 Think Deeper", "GPT 5.6 Think"],
+  },
+  {
+    id: "gpt-quick",
+    name: "GPT 5.6 Quick response",
+    description: "GPT サブメニューの Quick response",
+    modeKey: null,
+    parentLabels: ["GPT", "OpenAI"],
+    matchLabels: ["GPT 5.6 Quick response", "GPT-5.6 Quick response", "GPT 5.6 Quick"],
+  },
+  {
+    id: "gpt-55-quick",
+    name: "GPT 5.5 Quick Response",
+    description: "GPT サブメニューの 5.5 Quick Response",
+    modeKey: null,
+    parentLabels: ["GPT", "OpenAI"],
+    matchLabels: ["GPT 5.5 Quick Response", "GPT-5.5 Quick Response", "GPT 5.5 Quick"],
+  },
+  {
+    id: "sonnet",
+    name: "Claude Sonnet",
+    description: "Claude サブメニューの Sonnet",
+    modeKey: null,
+    parentLabels: ["Claude", "Anthropic"],
+    matchLabels: ["Sonnet"],
   },
   {
     id: "opus",
     name: "Claude Opus",
-    description: "Premium の Opus 系モデル（表示名で一致）",
+    description: "Claude サブメニューの Opus",
     modeKey: null,
-    matchLabels: ["Opus", "Claude Opus", "Claude"],
+    parentLabels: ["Claude", "Anthropic"],
+    matchLabels: ["Opus"],
   },
-  {
-    id: "gpt-thinking",
-    name: "GPT Thinking",
-    description: "GPT の Think Deeper / Thinking 系",
-    modeKey: null,
-    matchLabels: [
-      "GPT-5.6 Think",
-      "GPT 5.6 Think",
-      "GPT-5.5 Think",
-      "GPT 5.5 Think",
-      "Think Deeper",
-      "Thinking",
-    ],
-  },
-  {
-    id: "gpt-quick",
-    name: "GPT Quick response",
-    description: "GPT の Quick response / Instant 系",
-    modeKey: null,
-    matchLabels: [
-      "GPT-5.6 Quick",
-      "GPT 5.6 Quick",
-      "GPT-5.5 Quick",
-      "GPT 5.5 Quick",
-      "Quick response",
-      "Quick Response",
-      "Instant",
-    ],
-  },
+];
+
+export const PRESET_GROUPS = [
+  { label: "モード", ids: ["smart", "quick", "reasoning", "study", "search"] },
+  { label: "GPT (OpenAI)", ids: ["gpt-thinking", "gpt-quick", "gpt-55-quick"] },
+  { label: "Claude (Anthropic)", ids: ["sonnet", "opus"] },
 ];
 
 export const SESSION_MODE_KEY = "sticky-conversation-mode";
 
 export const DEFAULT_SETTINGS = {
   enabled: true,
-  modelId: "reasoning",
+  modelId: "gpt-thinking",
   applyOnLoad: true,
   applyOnNewChat: true,
   respectManualChangeMs: 15000,
@@ -86,21 +104,17 @@ export function normalizeLabel(text) {
   return (text ?? "").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
-export function labelMatches(label, patterns) {
-  const normalized = normalizeLabel(label);
-  if (!normalized) {
-    return false;
-  }
-
-  return patterns.some((pattern) => {
-    const needle = normalizeLabel(pattern);
-    return normalized === needle || normalized.includes(needle);
-  });
+export function labelMatches(label, patterns, excludeLabels = []) {
+  return scoreLabelMatch(label, patterns, excludeLabels) > 0;
 }
 
-export function scoreLabelMatch(label, patterns) {
+export function scoreLabelMatch(label, patterns, excludeLabels = []) {
   const normalized = normalizeLabel(label);
   if (!normalized) {
+    return 0;
+  }
+
+  if (excludeLabels.some((item) => normalized.includes(normalizeLabel(item)))) {
     return 0;
   }
 
@@ -112,6 +126,8 @@ export function scoreLabelMatch(label, patterns) {
     }
     if (normalized === needle) {
       best = Math.max(best, 100 + needle.length);
+    } else if (normalized.startsWith(needle)) {
+      best = Math.max(best, 80 + needle.length);
     } else if (normalized.includes(needle)) {
       best = Math.max(best, 50 + needle.length);
     }
