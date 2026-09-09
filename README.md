@@ -4,25 +4,31 @@ Copilot / Work IQ で毎回モデルを手動選択する手間を省く **Chrom
 
 リポジトリ: https://github.com/SerK21/CopilotSelecter
 
-## Edge 152（会社の公式ビルド）で使う
+## 会社の Edge 152（公式ビルド）で使う
 
-Edge 152 では `m365.cloud.microsoft` へのサードパーティ拡張が再び動きます。  
-ただし **`copilot.microsoft.com` と Edge サイドバー Copilot は、今もブラウザが保護していて拡張を注入できません**（フラグやポリシーでは解除不可）。
+**結論:** Edge 152 公式ビルドでは、会社 Copilot を次の URL の **通常タブ** で開くとこの拡張が動きます。
 
-会社の Edge では次の URL を **通常タブ** で開いてください。
+https://m365.cloud.microsoft/chat
 
-- https://m365.cloud.microsoft/chat
+Edge 152 で直ったのは `m365.cloud.microsoft` へのサードパーティ拡張です。一方、次の画面は Microsoft が保護しているため、**フラグでもグループポリシーでも拡張を注入できません。**
 
-拡張を入れると、`copilot.microsoft.com` を開いたときは自動で上記へ切り替えます（設定でオフにできます）。
+- `https://copilot.microsoft.com/`
+- Edge サイドバー Copilot（`edgeservices.bing.com` など）
+
+拡張を入れると、`copilot.microsoft.com` を開いたときは既定で `https://m365.cloud.microsoft/chat` へ切り替えます（詳細設定でオフにできます）。
 
 ### 入れ方
 
-1. [`addon/CopilotSelecter-Setup.exe`](addon/CopilotSelecter-Setup.exe) を実行する（SmartScreen が出たら「詳細情報」→「実行」）
-2. `edge://extensions` で **デベロッパーモード** をオン
-3. **パッケージ化されていない拡張機能を読み込む** で、表示されたフォルダを選ぶ
-4. https://m365.cloud.microsoft/chat を開き、ツールバーの CopilotSelecter からモデルを保存する
+1. [`addon/CopilotSelecter-Setup.exe`](addon/CopilotSelecter-Setup.exe) をダウンロードして実行する  
+   （SmartScreen が出たら「詳細情報」→「実行」）
+2. Edge で `edge://extensions` を開く
+3. 右上の **デベロッパーモード** をオンにする
+4. **パッケージ化されていない拡張機能を読み込む** で、セットアップが表示したフォルダを選ぶ（パスはクリップボードにコピー済み）
+5. **https://m365.cloud.microsoft/chat** を開き、ツールバーの CopilotSelecter からモデルを選んで保存する
 
-ZIP の場合は [`addon/copilotselecter-chrome.zip`](addon/copilotselecter-chrome.zip) を解凍し、同じ手順で `edge://extensions` から読み込みます。
+ZIP だけ使う場合は [`addon/copilotselecter-chrome.zip`](addon/copilotselecter-chrome.zip) を解凍し、手順 2 以降と同じです。解凍先に `manifest.json` があるフォルダを選んでください。
+
+会社ポリシーでデベロッパーモード自体が禁止されている場合は、この方法では入れられません。IT 側の許可が必要です。
 
 ## Chrome で使う場合
 
@@ -47,9 +53,9 @@ ZIP の場合は [`addon/copilotselecter-chrome.zip`](addon/copilotselecter-chro
 
 ## 対応 URL
 
-| URL | Chrome | Edge 152 |
+| URL | Chrome | Edge 152 公式ビルド |
 | --- | --- | --- |
-| `https://m365.cloud.microsoft/*`（会社 Copilot / Work IQ） | 動作 | 動作 |
+| `https://m365.cloud.microsoft/*`（会社 Copilot / Work IQ） | 動作 | **動作（会社利用はここ）** |
 | `https://copilot.com/*` | 動作 | 動作することが多い |
 | `https://www.bing.com/chat/*` | 動作 | 動作することが多い |
 | `https://copilot.microsoft.com/*` | 動作 | **保護ページのため不可**（M365 へ誘導） |
