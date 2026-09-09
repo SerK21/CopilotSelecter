@@ -38,6 +38,14 @@
         <span>自動選択を有効化</span>
       </label>
 
+      <section id="edgeHelp" class="edge-help" hidden>
+        <p id="edgeHelpText">
+          Edge 152 ではサイドバーや <code>copilot.microsoft.com</code> は保護ページです。会社利用は
+          <strong>m365.cloud.microsoft</strong> を通常タブで開いてください。
+        </p>
+        <button id="openM365" type="button">M365 Copilot を開く</button>
+      </section>
+
       <div class="actions">
         <button id="save" type="button">保存して適用</button>
         <button id="applyNow" type="button" class="secondary">このタブに適用</button>
@@ -49,6 +57,6 @@
       <p id="status" class="status" aria-live="polite"></p>
       <pre id="diag" class="diag" aria-live="polite"></pre>
     </main>
-    <script src="popup.js"></script>
+    <script type="module" src="popup.js"></script>
   </body>
 </html>

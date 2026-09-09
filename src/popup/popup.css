@@ -79,6 +79,25 @@ button.secondary {
   color: #fca5a5;
 }
 
+.edge-help {
+  margin: 0 0 12px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #92400e;
+  background: #1c1917;
+  font-size: 12px;
+  color: #fde68a;
+}
+
+.edge-help p {
+  margin: 0 0 8px;
+}
+
+.edge-help button {
+  width: 100%;
+  background: #d97706;
+}
+
 .diag {
   margin: 10px 0 0;
   padding: 8px;

@@ -4,6 +4,7 @@ const modelSelect = document.getElementById("modelId");
 const enabledInput = document.getElementById("enabled");
 const applyOnLoadInput = document.getElementById("applyOnLoad");
 const applyOnNewChatInput = document.getElementById("applyOnNewChat");
+const edgeOpenM365Input = document.getElementById("edgeOpenM365");
 const respectManualChangeMsInput = document.getElementById("respectManualChangeMs");
 const saveButton = document.getElementById("save");
 const reapplyButton = document.getElementById("reapply");
@@ -34,6 +35,7 @@ async function init() {
   enabledInput.checked = settings.enabled !== false;
   applyOnLoadInput.checked = settings.applyOnLoad !== false;
   applyOnNewChatInput.checked = settings.applyOnNewChat !== false;
+  edgeOpenM365Input.checked = settings.edgeOpenM365 !== false;
   respectManualChangeMsInput.value = String(
     Math.round((settings.respectManualChangeMs || 15000) / 1000),
   );
@@ -47,6 +49,7 @@ async function handleSave() {
       enabled: enabledInput.checked,
       applyOnLoad: applyOnLoadInput.checked,
       applyOnNewChat: applyOnNewChatInput.checked,
+      edgeOpenM365: edgeOpenM365Input.checked,
       respectManualChangeMs: Math.max(0, seconds) * 1000,
     });
     const response = await chrome.runtime.sendMessage({ type: "REAPPLY_ALL_TABS" });

@@ -1,0 +1,33 @@
+name: Package Chrome extension
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: Build zip and Windows setup exe
+        run: bash scripts/build-release-assets.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: copilotselecter-chrome
+          path: |
+            addon/copilotselecter-chrome.zip
+            addon/CopilotSelecter-Setup.exe
+      - name: Attach assets to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            addon/copilotselecter-chrome.zip
+            addon/CopilotSelecter-Setup.exe

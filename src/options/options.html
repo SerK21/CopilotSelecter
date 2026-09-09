@@ -11,7 +11,7 @@
       <header>
         <h1>Copilot Default Model</h1>
         <p>
-          Copilot Premium で毎回モデルを選ぶ手間を省きます。Chrome と Edge（制限あり）で動作します。
+          Copilot / Work IQ のモデルを固定します。Chrome と Microsoft Edge 152 公式ビルドに対応しています。
         </p>
       </header>
 
@@ -54,6 +54,11 @@
           <span>新しいチャット / 画面遷移時に適用</span>
         </label>
 
+        <label class="toggle">
+          <input id="edgeOpenM365" type="checkbox" checked />
+          <span>Edge で copilot.microsoft.com を開いたら、会社向け M365 Copilot（m365.cloud.microsoft）に切り替える</span>
+        </label>
+
         <label class="field">
           <span>手動変更後の待機時間（秒）</span>
           <input id="respectManualChangeMs" type="number" min="0" max="120" step="1" />
@@ -76,11 +81,15 @@
       </section>
 
       <section class="card warning">
-        <h2>Microsoft Edge について</h2>
+        <h2>Microsoft Edge 152 について</h2>
         <p>
-          Edge 135 以降では <code>copilot.microsoft.com</code> へのコンテンツスクリプト注入が
-          ブラウザ側でブロックされる場合があります（Chrome では動作）。Edge で使う場合は Chrome
-          を使うか、Microsoft の制限解除を待つ必要があります。
+          Edge 152 では <code>m365.cloud.microsoft</code> へのサードパーティ拡張が再び動きます（150 の不具合は修正済み）。
+          一方 <code>copilot.microsoft.com</code>・Edge サイドバー Copilot（<code>edgeservices.bing.com</code>）は
+          今も保護ページのため、拡張を注入できません。
+        </p>
+        <p>
+          会社の公式 Edge では <strong>https://m365.cloud.microsoft/chat</strong> を通常タブで開いて使ってください。
+          拡張の読み込みは <code>edge://extensions</code> から、デベロッパーモードでパッケージ化されていない拡張として追加します。
         </p>
       </section>
 
