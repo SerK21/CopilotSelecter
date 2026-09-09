@@ -128,6 +128,38 @@
     return scoreLabelMatch(label, patterns, excludeLabels) > 0;
   }
 
+  const GENERIC_SELECTOR_LABEL = /^(モデル\s*セレクター|model selector|select (a )?model|choose model)$/i;
+  const LOADING_LABEL = /読み込|loading|spinner|please wait|^\s*[.…・…]+\s*$/i;
+  const MODEL_READY_HINT =
+    /自動|auto|smart|スマート|クイック応答|think deeper|より深く|gpt\s*5|claude|sonnet|opus|quick response/i;
+  const MENU_READY_HINT =
+    /自動|auto|smart|gpt|claude|think deeper|クイック応答|sonnet|opus|openai|anthropic/i;
+
+  function isGenericSelectorLabel(label) {
+    const raw = (label ?? "").replace(/\s+/g, " ").trim();
+    return !raw || GENERIC_SELECTOR_LABEL.test(raw);
+  }
+
+  function isLoadingLabel(label) {
+    return LOADING_LABEL.test((label ?? "").replace(/\s+/g, " ").trim());
+  }
+
+  function triggerLooksLoaded(label) {
+    const raw = (label ?? "").replace(/\s+/g, " ").trim();
+    if (!raw || isLoadingLabel(raw) || isGenericSelectorLabel(raw)) {
+      return false;
+    }
+    return MODEL_READY_HINT.test(raw) || raw.length >= 4;
+  }
+
+  function menuLooksPopulated(labels) {
+    const texts = (labels ?? []).map((item) => String(item ?? "").trim()).filter(Boolean);
+    if (texts.length < 2) {
+      return false;
+    }
+    return MENU_READY_HINT.test(texts.join(" "));
+  }
+
   async function loadSettings() {
     const stored = await chrome.storage.sync.get(STORAGE_KEY);
     return { ...DEFAULT_SETTINGS, ...(stored[STORAGE_KEY] ?? {}) };
@@ -143,5 +175,9 @@
     scoreLabelMatch,
     normalizeLabel,
     loadSettings,
+    isGenericSelectorLabel,
+    isLoadingLabel,
+    triggerLooksLoaded,
+    menuLooksPopulated,
   };
 })(globalThis);

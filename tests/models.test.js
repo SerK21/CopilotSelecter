@@ -4,6 +4,10 @@ import {
   getPresetById,
   labelMatches,
   scoreLabelMatch,
+  isGenericSelectorLabel,
+  isLoadingLabel,
+  triggerLooksLoaded,
+  menuLooksPopulated,
 } from "../src/shared/models.js";
 
 test("getPresetById falls back to smart", () => {
@@ -45,4 +49,23 @@ test("scoreLabelMatch prefers exact and prefix matches", () => {
   const exact = scoreLabelMatch("Claude Opus", ["Opus", "Claude Opus"]);
   const partial = scoreLabelMatch("Claude Opus 5", ["Opus"]);
   assert.ok(exact > partial);
+});
+
+test("generic model selector labels are not treated as loaded", () => {
+  assert.equal(isGenericSelectorLabel(""), true);
+  assert.equal(isGenericSelectorLabel("モデルセレクター"), true);
+  assert.equal(isGenericSelectorLabel("モデル セレクター"), true);
+  assert.equal(isGenericSelectorLabel("Model selector"), true);
+  assert.equal(isLoadingLabel("読み込み中"), true);
+  assert.equal(isLoadingLabel("..."), true);
+  assert.equal(triggerLooksLoaded("モデルセレクター"), false);
+  assert.equal(triggerLooksLoaded("GPT 5.6 Think Deeper"), true);
+  assert.equal(triggerLooksLoaded("自動"), true);
+});
+
+test("menus are populated only after real model rows appear", () => {
+  assert.equal(menuLooksPopulated([]), false);
+  assert.equal(menuLooksPopulated(["読み込み中"]), false);
+  assert.equal(menuLooksPopulated(["自動", "GPT"]), true);
+  assert.equal(menuLooksPopulated(["Claude", "Sonnet"]), true);
 });

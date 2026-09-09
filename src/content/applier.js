@@ -16,6 +16,8 @@
     normalizeLabel,
     SESSION_MODE_KEY,
     loadSettings,
+    triggerLooksLoaded,
+    menuLooksPopulated,
   } = api;
 
   const LOG_PREFIX = "[CopilotSelecter]";
@@ -41,6 +43,8 @@
   let settingsCache = null;
   let debounceTimer = null;
   let silentStyle = null;
+  let pickerStable = { label: "", since: 0 };
+  let waitTimer = null;
 
   function log(...args) {
     console.info(LOG_PREFIX, ...args);
@@ -227,18 +231,27 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
     );
   }
 
-  async function waitForMenuItems(timeoutMs = 500) {
+  async function waitForPopulatedMenu(timeoutMs = 1800) {
     const started = Date.now();
     while (Date.now() - started < timeoutMs) {
-      const items = [...document.querySelectorAll('[role="menuitem"], [role="menuitemradio"]')].filter(
-        isVisible,
-      );
-      if (items.length > 0) {
+      const items = visibleMenuItems();
+      const labels = items.map((item) => visibleText(item));
+      if (menuLooksPopulated(labels)) {
         return items;
       }
-      await nextFrame();
+      await wait(50);
     }
     return [];
+  }
+
+  function visibleMenuItems() {
+    return allElements().filter((element) => {
+      if (!isVisible(element)) {
+        return false;
+      }
+      const role = element.getAttribute("role");
+      return role === "menuitem" || role === "menuitemradio" || role === "option";
+    });
   }
 
   async function keyboardSelect(preset) {
@@ -287,6 +300,43 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
     }
   }
 
+  function isBusy(element) {
+    if (!(element instanceof Element)) {
+      return true;
+    }
+    if (element.disabled || element.getAttribute("aria-disabled") === "true") {
+      return true;
+    }
+    if (element.getAttribute("aria-busy") === "true") {
+      return true;
+    }
+    if (element.closest?.('[aria-busy="true"], [data-is-loading="true"]')) {
+      return true;
+    }
+    return Boolean(element.querySelector?.('[class*="Spinner"], [role="progressbar"]'));
+  }
+
+  function isPickerReady(trigger = findPickerTrigger()) {
+    if (!trigger || !isVisible(trigger) || isBusy(trigger)) {
+      return false;
+    }
+    return triggerLooksLoaded(visibleText(trigger));
+  }
+
+  function isPickerStable(trigger) {
+    if (!isPickerReady(trigger)) {
+      pickerStable = { label: "", since: 0 };
+      return false;
+    }
+    const label = visibleText(trigger);
+    const now = Date.now();
+    if (label !== pickerStable.label) {
+      pickerStable = { label, since: now };
+      return false;
+    }
+    return now - pickerStable.since >= 400;
+  }
+
   function findPickerTrigger() {
     const byId = document.getElementById("gptModeSwitcher");
     if (byId && isVisible(byId)) {
@@ -319,10 +369,12 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
 
   async function applyViaUi(preset) {
     const trigger = findPickerTrigger();
-    if (!trigger) {
+    if (!trigger || !isPickerReady(trigger)) {
       await report("picker-not-found", {
         modelId: preset.id,
         hasSwitcher: Boolean(document.getElementById("gptModeSwitcher")),
+        trigger: trigger ? visibleText(trigger) : "",
+        ready: isPickerReady(trigger),
       });
       return false;
     }
@@ -335,8 +387,16 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
     setSilentUi(true);
     try {
       pageAct(trigger, "click");
-      const items = await waitForMenuItems(480);
+      const items = await waitForPopulatedMenu(1800);
       const itemLabels = items.map((item) => visibleText(item)).slice(0, 12);
+
+      if (!menuLooksPopulated(itemLabels) && items.length === 0) {
+        await report("menu-not-ready", {
+          modelId: preset.id,
+          trigger: visibleText(trigger),
+        });
+        return false;
+      }
 
       if (items.length > 0) {
         if (preset.parentLabels?.length) {
@@ -361,6 +421,16 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
           await report("clicked", { modelId: preset.id, label: visibleText(leaf), silent: true });
           return true;
         }
+      }
+
+      if (!menuLooksPopulated(itemLabels)) {
+        await report("menu-not-ready", {
+          modelId: preset.id,
+          itemCount: items.length,
+          itemLabels,
+          trigger: visibleText(trigger),
+        });
+        return false;
       }
 
       const keyed = await keyboardSelect(preset);
@@ -390,8 +460,14 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
     if (!looksLikeCopilot()) {
       return;
     }
-    if (!findPickerTrigger()) {
-      await report("waiting-for-selector", { modelId: getPresetById(settings.modelId).id });
+
+    const trigger = findPickerTrigger();
+    if (!isPickerReady(trigger) || !isPickerStable(trigger)) {
+      await report("waiting-for-selector", {
+        modelId: getPresetById(settings.modelId).id,
+        trigger: trigger ? visibleText(trigger) : "",
+        ready: isPickerReady(trigger),
+      });
       return;
     }
 
@@ -403,20 +479,26 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
 
     applying = true;
     applyAttempts += 1;
+    let applied = false;
     try {
-      await report("applying", { modelId: preset.id, attempt: applyAttempts });
+      await report("applying", {
+        modelId: preset.id,
+        attempt: applyAttempts,
+        trigger: visibleText(trigger),
+      });
       applySessionMode(preset.modeKey);
-      const applied = await applyViaUi(preset);
+      applied = await applyViaUi(preset);
       if (applied) {
         lastAppliedSignature = signature;
-      } else if (applyAttempts < 3) {
-        window.setTimeout(() => {
-          applying = false;
-          applyPreset(settings);
-        }, 400);
       }
     } finally {
       applying = false;
+    }
+
+    if (!applied && applyAttempts < 8) {
+      window.setTimeout(() => {
+        applyPreset(settings);
+      }, Math.min(500 * applyAttempts, 2500));
     }
   }
 
@@ -424,7 +506,7 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
     window.clearTimeout(debounceTimer);
     debounceTimer = window.setTimeout(() => {
       applyPreset(settings);
-    }, 50);
+    }, 300);
   }
 
   async function start() {
@@ -435,17 +517,23 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
     }
 
     function armSwitcherWait() {
+      window.clearInterval(waitTimer);
       const started = Date.now();
-      const timer = window.setInterval(() => {
-        if (findPickerTrigger()) {
-          window.clearInterval(timer);
+      waitTimer = window.setInterval(() => {
+        const trigger = findPickerTrigger();
+        if (isPickerReady(trigger) && isPickerStable(trigger)) {
+          window.clearInterval(waitTimer);
           scheduleApply(settingsCache);
           return;
         }
-        if (Date.now() - started > 20000) {
-          window.clearInterval(timer);
+        if (Date.now() - started > 45000) {
+          window.clearInterval(waitTimer);
+          report("picker-timeout", {
+            modelId: getPresetById(settingsCache.modelId).id,
+            trigger: trigger ? visibleText(trigger) : "",
+          });
         }
-      }, 150);
+      }, 200);
     }
 
     await report("waiting-for-selector");
@@ -457,6 +545,7 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
         previousPath = location.pathname;
         lastAppliedSignature = "";
         applyAttempts = 0;
+        pickerStable = { label: "", since: 0 };
         armSwitcherWait();
       }
     }, 800);
@@ -471,14 +560,16 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
       };
       lastAppliedSignature = "";
       applyAttempts = 0;
-      scheduleApply(settingsCache);
+      pickerStable = { label: "", since: 0 };
+      armSwitcherWait();
     });
 
     chrome.runtime.onMessage.addListener((message) => {
       if (message?.type === "REAPPLY_DEFAULT_MODEL") {
         lastAppliedSignature = "";
         applyAttempts = 0;
-        scheduleApply(settingsCache);
+        pickerStable = { label: "", since: 0 };
+        armSwitcherWait();
       }
     });
   }
