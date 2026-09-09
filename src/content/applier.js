@@ -135,7 +135,7 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
     return items;
   }
 
-  function visibleText(element) {
+  function displayedModelLabel(element) {
     const inner = (element.innerText || element.textContent || "").replace(/\s+/g, " ").trim();
     if (inner) {
       return inner;
@@ -145,6 +145,10 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
       element.getAttribute?.("title") ||
       ""
     ).replace(/\s+/g, " ").trim();
+  }
+
+  function visibleText(element) {
+    return displayedModelLabel(element);
   }
 
   function looksLikeCopilot() {
@@ -159,35 +163,53 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
     return snippet.includes("Work IQ");
   }
 
-  function findBestByText(patterns, excludeLabels = [], { preferShort = true, skipWorkIq = true } = {}) {
+  function bestIn(elements, patterns, excludeLabels = []) {
     let best = null;
     let bestScore = 0;
     let bestLength = Infinity;
-
-    for (const element of allElements()) {
+    for (const element of elements) {
       if (!isVisible(element)) {
         continue;
       }
       const label = visibleText(element);
-      if (!label || label.length > 180) {
-        continue;
-      }
-      if (skipWorkIq && /work iq/i.test(label)) {
-        continue;
-      }
       const score = scoreLabelMatch(label, patterns, excludeLabels);
       if (score <= 0) {
         continue;
       }
       const length = normalizeLabel(label).length;
-      if (score > bestScore || (preferShort && score === bestScore && length < bestLength)) {
+      if (score > bestScore || (score === bestScore && length < bestLength)) {
         best = element;
         bestScore = score;
         bestLength = length;
       }
     }
-
     return bestScore > 0 ? best : null;
+  }
+
+  function openMenuRoot() {
+    const menus = allElements().filter((element) => {
+      const role = element.getAttribute("role");
+      return (role === "menu" || role === "listbox") && isVisible(element);
+    });
+    return menus.at(-1) || null;
+  }
+
+  function visibleMenuItems() {
+    const root = openMenuRoot();
+    if (!root) {
+      return [];
+    }
+    const items = [];
+    walkElements(root, (element) => {
+      const role = element.getAttribute("role");
+      if (
+        (role === "menuitem" || role === "menuitemradio" || role === "option") &&
+        isVisible(element)
+      ) {
+        items.push(element);
+      }
+    });
+    return items;
   }
 
   function clickableAncestor(element) {
@@ -244,13 +266,17 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
     return [];
   }
 
-  function visibleMenuItems() {
-    return allElements().filter((element) => {
+  function isComposerReady() {
+    return allElements().some((element) => {
       if (!isVisible(element)) {
         return false;
       }
+      const testId = element.getAttribute("data-testid") || "";
+      if (/composer|chat-input|user-input/i.test(testId)) {
+        return true;
+      }
       const role = element.getAttribute("role");
-      return role === "menuitem" || role === "menuitemradio" || role === "option";
+      return role === "textbox" || element.tagName === "TEXTAREA" || element.isContentEditable;
     });
   }
 
@@ -320,7 +346,10 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
     if (!trigger || !isVisible(trigger) || isBusy(trigger)) {
       return false;
     }
-    return triggerLooksLoaded(visibleText(trigger));
+    if (!triggerLooksLoaded(visibleText(trigger))) {
+      return false;
+    }
+    return isComposerReady();
   }
 
   function isPickerStable(trigger) {
@@ -334,7 +363,7 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
       pickerStable = { label, since: now };
       return false;
     }
-    return now - pickerStable.since >= 400;
+    return now - pickerStable.since >= 700;
   }
 
   function findPickerTrigger() {
@@ -400,22 +429,21 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
 
       if (items.length > 0) {
         if (preset.parentLabels?.length) {
-          const parent =
-            items.find((item) => scoreLabelMatch(visibleText(item), preset.parentLabels) > 0) ||
-            findBestByText(preset.parentLabels);
+          const parent = bestIn(items, preset.parentLabels);
           if (parent) {
             pageAct(parent, "hover");
-            await nextFrame();
+            await wait(120);
             pageAct(parent, "click");
-            await nextFrame();
+            await wait(120);
           }
         }
 
-        const leaf =
-          findBestByText(preset.matchLabels, preset.excludeLabels || []) ||
-          items.find(
-            (item) => scoreLabelMatch(visibleText(item), preset.matchLabels, preset.excludeLabels || []) > 0,
-          );
+        const currentItems = visibleMenuItems();
+        const leaf = bestIn(
+          currentItems.length > 0 ? currentItems : items,
+          preset.matchLabels,
+          preset.excludeLabels || [],
+        );
         if (leaf) {
           pageAct(leaf, "click");
           await report("clicked", { modelId: preset.id, label: visibleText(leaf), silent: true });
@@ -485,10 +513,11 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
         modelId: preset.id,
         attempt: applyAttempts,
         trigger: visibleText(trigger),
+        composer: isComposerReady(),
       });
-      applySessionMode(preset.modeKey);
       applied = await applyViaUi(preset);
       if (applied) {
+        applySessionMode(preset.modeKey);
         lastAppliedSignature = signature;
       }
     } finally {

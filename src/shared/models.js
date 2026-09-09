@@ -129,12 +129,12 @@ export function triggerLooksLoaded(label) {
   if (!raw || isLoadingLabel(raw) || isGenericSelectorLabel(raw)) {
     return false;
   }
-  return MODEL_READY_HINT.test(raw) || raw.length >= 4;
+  return MODEL_READY_HINT.test(raw);
 }
 
 export function menuLooksPopulated(labels) {
   const texts = (labels ?? []).map((item) => String(item ?? "").trim()).filter(Boolean);
-  if (texts.length < 2) {
+  if (texts.length < 3) {
     return false;
   }
   return MENU_READY_HINT.test(texts.join(" "));

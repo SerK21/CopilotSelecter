@@ -59,6 +59,8 @@ test("generic model selector labels are not treated as loaded", () => {
   assert.equal(isLoadingLabel("読み込み中"), true);
   assert.equal(isLoadingLabel("..."), true);
   assert.equal(triggerLooksLoaded("モデルセレクター"), false);
+  assert.equal(triggerLooksLoaded("Work IQ"), false);
+  assert.equal(triggerLooksLoaded("Chat"), false);
   assert.equal(triggerLooksLoaded("GPT 5.6 Think Deeper"), true);
   assert.equal(triggerLooksLoaded("自動"), true);
 });
@@ -66,6 +68,7 @@ test("generic model selector labels are not treated as loaded", () => {
 test("menus are populated only after real model rows appear", () => {
   assert.equal(menuLooksPopulated([]), false);
   assert.equal(menuLooksPopulated(["読み込み中"]), false);
-  assert.equal(menuLooksPopulated(["自動", "GPT"]), true);
-  assert.equal(menuLooksPopulated(["Claude", "Sonnet"]), true);
+  assert.equal(menuLooksPopulated(["自動", "GPT"]), false);
+  assert.equal(menuLooksPopulated(["自動", "クイック応答", "GPT"]), true);
+  assert.equal(menuLooksPopulated(["Claude", "Sonnet", "Opus"]), true);
 });

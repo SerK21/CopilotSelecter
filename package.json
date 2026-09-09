@@ -4,7 +4,7 @@
     "type": "git",
     "url": "https://github.com/SerK21/CopilotSelecter.git"
   },
-  "version": "1.2.6",
+  "version": "1.2.7",
   "private": true,
   "type": "module",
   "description": "Chrome/Edge extension to auto-select a default model in Copilot Premium",
