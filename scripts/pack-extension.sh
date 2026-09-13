@@ -11,6 +11,7 @@ OUT="${DIST}/copilotselecter-chrome.zip"
 mkdir -p "${DIST}"
 rm -f "${OUT}"
 
+python3 -m pip install --quiet pillow
 python3 "${ROOT}/scripts/generate-icons.py" >/dev/null
 
 TMP="$(mktemp -d)"
