@@ -37,6 +37,14 @@
       matchLabels: ["Search"],
     },
     {
+      id: "gpt-sol",
+      name: "GPT 5.6 Sol",
+      description: "GPT サブメニューの 5.6 Sol",
+      modeKey: null,
+      parentLabels: ["GPT", "OpenAI"],
+      matchLabels: ["GPT 5.6 Sol", "GPT-5.6 Sol", "5.6 Sol", "GPT 5.6 ソル", "5.6 ソル"],
+    },
+    {
       id: "gpt-thinking",
       name: "GPT 5.6 Think Deeper",
       description: "GPT サブメニューの Think Deeper",
@@ -83,7 +91,7 @@
 
   const DEFAULT_SETTINGS = {
     enabled: true,
-    modelId: "gpt-thinking",
+    modelId: "gpt-sol",
     applyOnLoad: true,
     applyOnNewChat: true,
     respectManualChangeMs: 15000,
@@ -162,7 +170,18 @@
 
   async function loadSettings() {
     const stored = await chrome.storage.sync.get(STORAGE_KEY);
-    return { ...DEFAULT_SETTINGS, ...(stored[STORAGE_KEY] ?? {}) };
+    const current = { ...DEFAULT_SETTINGS, ...(stored[STORAGE_KEY] ?? {}) };
+    const revision = current.settingsRevision ?? 0;
+    if (revision < 3 && (current.modelId === "gpt-thinking" || !stored[STORAGE_KEY]?.modelId)) {
+      current.modelId = "gpt-sol";
+      current.settingsRevision = 3;
+      try {
+        await chrome.storage.sync.set({ [STORAGE_KEY]: current });
+      } catch {
+        // Restricted frames may not persist; the in-memory value is still Sol.
+      }
+    }
+    return current;
   }
 
   global.CopilotDefaultModel = {

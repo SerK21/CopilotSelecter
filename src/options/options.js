@@ -17,7 +17,13 @@ function setStatus(message, isError) {
 
 async function loadSettings() {
   const stored = await chrome.storage.sync.get(STORAGE_KEY);
-  return stored[STORAGE_KEY] || {};
+  const current = { ...(stored[STORAGE_KEY] || {}) };
+  if ((current.settingsRevision ?? 0) < 3 && (!current.modelId || current.modelId === "gpt-thinking")) {
+    current.modelId = "gpt-sol";
+    current.settingsRevision = 3;
+    await chrome.storage.sync.set({ [STORAGE_KEY]: current });
+  }
+  return current;
 }
 
 async function saveSettings(partial) {

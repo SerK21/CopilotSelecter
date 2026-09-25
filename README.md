@@ -40,7 +40,7 @@ ZIP だけ使う場合は [`addon/copilotselecter-chrome.zip`](addon/copilotsele
 - **対応プリセット**（Work IQ / Copilot の入れ子メニュー含む）
   - 自動 / クイック応答 / Think Deeper
   - Study and learn / Search（個人 Copilot）
-  - GPT 5.6 Think Deeper / GPT 5.6 Quick response / GPT 5.5 Quick Response
+  - GPT 5.6 Sol / GPT 5.6 Think Deeper / GPT 5.6 Quick response / GPT 5.5 Quick Response
   - Claude Sonnet / Claude Opus
 - **新規チャットでも再適用** — 画面遷移や新しいチャット開始時にも設定を維持
 - **手動変更を尊重** — 自分でモデルを変えた直後は、一定時間自動適用しません

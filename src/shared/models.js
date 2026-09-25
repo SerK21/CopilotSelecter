@@ -39,6 +39,14 @@ export const MODEL_PRESETS = [
     matchLabels: ["Search"],
   },
   {
+    id: "gpt-sol",
+    name: "GPT 5.6 Sol",
+    description: "GPT サブメニューの 5.6 Sol",
+    modeKey: null,
+    parentLabels: ["GPT", "OpenAI"],
+    matchLabels: ["GPT 5.6 Sol", "GPT-5.6 Sol", "5.6 Sol", "GPT 5.6 ソル", "5.6 ソル"],
+  },
+  {
     id: "gpt-thinking",
     name: "GPT 5.6 Think Deeper",
     description: "GPT サブメニューの Think Deeper",
@@ -82,7 +90,7 @@ export const MODEL_PRESETS = [
 
 export const PRESET_GROUPS = [
   { label: "モード", ids: ["smart", "quick", "reasoning", "study", "search"] },
-  { label: "GPT (OpenAI)", ids: ["gpt-thinking", "gpt-quick", "gpt-55-quick"] },
+  { label: "GPT (OpenAI)", ids: ["gpt-sol", "gpt-thinking", "gpt-quick", "gpt-55-quick"] },
   { label: "Claude (Anthropic)", ids: ["sonnet", "opus"] },
 ];
 
@@ -90,7 +98,7 @@ export const SESSION_MODE_KEY = "sticky-conversation-mode";
 
 export const DEFAULT_SETTINGS = {
   enabled: true,
-  modelId: "gpt-thinking",
+  modelId: "gpt-sol",
   applyOnLoad: true,
   applyOnNewChat: true,
   respectManualChangeMs: 15000,

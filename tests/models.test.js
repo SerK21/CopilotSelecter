@@ -29,6 +29,15 @@ test("quick response does not match GPT quick items", () => {
   assert.equal(labelMatches("GPT 5.6 Quick response", preset.matchLabels), false);
 });
 
+test("GPT 5.6 Sol is the default and does not match Think Deeper", () => {
+  const preset = getPresetById("gpt-sol");
+  assert.equal(preset.name, "GPT 5.6 Sol");
+  assert.ok(labelMatches("GPT 5.6 Sol", preset.matchLabels));
+  assert.ok(labelMatches("5.6 Sol", preset.matchLabels));
+  assert.equal(labelMatches("GPT 5.6 Think Deeper", preset.matchLabels), false);
+  assert.equal(getPresetById("gpt-thinking").matchLabels.some((label) => label.includes("Sol")), false);
+});
+
 test("GPT 5.6 Think Deeper is a dedicated preset", () => {
   const preset = getPresetById("gpt-thinking");
   assert.equal(preset.name, "GPT 5.6 Think Deeper");
