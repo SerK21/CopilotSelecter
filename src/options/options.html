@@ -68,6 +68,28 @@
       </section>
 
       <section class="card">
+        <h2>自分で追加するモデル</h2>
+        <p>
+          新しいモデルが出たら、Copilot のメニューに表示されている文字列をそのまま登録します。
+          例: 表示名 <code>GPT 6 Sol</code>、メニューの文字列 <code>GPT 6 Sol</code>、親メニュー <code>GPT</code>。
+        </p>
+        <label class="field">
+          <span>表示名</span>
+          <input id="customName" type="text" placeholder="GPT 6 Sol" />
+        </label>
+        <label class="field">
+          <span>メニューに出ている文字列</span>
+          <input id="customMatch" type="text" placeholder="GPT 6 Sol" />
+        </label>
+        <label class="field">
+          <span>親メニュー（サブメニューのときだけ）</span>
+          <input id="customParent" type="text" placeholder="GPT" />
+        </label>
+        <button id="addCustom" type="button">このモデルを追加</button>
+        <ul id="customList"></ul>
+      </section>
+
+      <section class="card">
         <h2>対応プリセット</h2>
         <ul id="presetList">
           <li><strong>自動</strong> — 考える時間の長さを自動で決める</li>

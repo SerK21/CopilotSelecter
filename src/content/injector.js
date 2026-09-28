@@ -1,5 +1,5 @@
 (function bootstrapInjector() {
-  const { getPresetById, SESSION_MODE_KEY } = globalThis.CopilotDefaultModel;
+  const { resolvePreset, SESSION_MODE_KEY } = globalThis.CopilotDefaultModel;
   const SETTINGS_KEY = "copilotDefaultModelSettings";
 
   async function readSettings() {
@@ -53,7 +53,7 @@
         return;
       }
       window.clearInterval(timer);
-      const preset = getPresetById(settings.modelId);
+      const preset = resolvePreset(settings.modelId, settings.customModels);
       if (preset.modeKey) {
         applySessionMode(preset.modeKey);
       }

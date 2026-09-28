@@ -107,6 +107,18 @@ async function applyToTab(tabId) {
 async function init() {
   try {
     const settings = await loadSettings();
+    const customs = Array.isArray(settings.customModels) ? settings.customModels : [];
+    if (customs.length) {
+      const group = document.createElement("optgroup");
+      group.label = "カスタム";
+      for (const model of customs) {
+        const option = document.createElement("option");
+        option.value = model.id;
+        option.textContent = model.name || model.matchText;
+        group.appendChild(option);
+      }
+      modelSelect.appendChild(group);
+    }
     if (settings.modelId) {
       modelSelect.value = settings.modelId;
     }

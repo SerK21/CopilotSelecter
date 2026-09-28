@@ -8,6 +8,7 @@ import {
   isLoadingLabel,
   triggerLooksLoaded,
   menuLooksPopulated,
+  resolvePreset,
 } from "../src/shared/models.js";
 
 test("getPresetById falls back to smart", () => {
@@ -71,7 +72,18 @@ test("generic model selector labels are not treated as loaded", () => {
   assert.equal(triggerLooksLoaded("Work IQ"), false);
   assert.equal(triggerLooksLoaded("Chat"), false);
   assert.equal(triggerLooksLoaded("GPT 5.6 Think Deeper"), true);
+  assert.equal(triggerLooksLoaded("GPT 6 Sol"), true);
   assert.equal(triggerLooksLoaded("自動"), true);
+});
+
+test("custom model matches the menu text the user typed", () => {
+  const preset = resolvePreset("custom-1", [
+    { id: "custom-1", name: "GPT 6 Sol", matchText: "GPT 6 Sol", parentText: "GPT" },
+  ]);
+  assert.equal(preset.name, "GPT 6 Sol");
+  assert.deepEqual(preset.parentLabels, ["GPT"]);
+  assert.ok(labelMatches("GPT 6 Sol", preset.matchLabels));
+  assert.equal(resolvePreset("gpt-sol", []).id, "gpt-sol");
 });
 
 test("menus are populated only after real model rows appear", () => {

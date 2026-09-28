@@ -17,14 +17,22 @@ Edge 152 で直ったのは `m365.cloud.microsoft` へのサードパーティ�
 
 拡張を入れると、`copilot.microsoft.com` を開いたときは既定で `https://m365.cloud.microsoft/chat` へ切り替えます（詳細設定でオフにできます）。
 
-### 入れ方
+### 会社 PC への入れ方
 
-1. [`addon/CopilotSelecter-Setup.exe`](addon/CopilotSelecter-Setup.exe) をダウンロードして実行する  
-   （SmartScreen が出たら「詳細情報」→「実行」）
-2. Edge で `edge://extensions` を開く
-3. 右上の **デベロッパーモード** をオンにする
-4. **パッケージ化されていない拡張機能を読み込む** で、セットアップが表示したフォルダを選ぶ（パスはクリップボードにコピー済み）
-5. **https://m365.cloud.microsoft/chat** を開き、ツールバーの CopilotSelecter からモデルを選んで保存する
+会社の Edge に入れる手順です。Chrome ウェブストア経由では入れられません。
+
+1. 個人 PC でこのリポジトリの [`addon/CopilotSelecter-Setup.exe`](addon/CopilotSelecter-Setup.exe) をダウンロードする
+2. その EXE を会社 PC にコピーして実行する（SmartScreen が出たら「詳細情報」→「実行」）
+3. Edge で `edge://extensions` を開く
+4. 右上の **デベロッパーモード** をオンにする
+5. **パッケージ化されていない拡張機能を読み込む** で、セットアップが表示したフォルダを選ぶ（パスはクリップボードにコピー済み）
+6. **https://m365.cloud.microsoft/chat** を通常タブで開き、ツールバーの CopilotSelecter からモデルを選んで保存する
+
+ZIP だけ使う場合は [`addon/copilotselecter-chrome.zip`](addon/copilotselecter-chrome.zip) を解凍し、手順 3 以降と同じです。解凍先に `manifest.json` があるフォルダを選んでください。
+
+会社ポリシーでデベロッパーモード自体が禁止されている場合は、この方法では入れられません。IT 側の許可が必要です。サイドバー Copilot と `copilot.microsoft.com` では動きません。
+
+新しいモデル名は、詳細設定の「自分で追加するモデル」にメニュー表記を登録すれば、拡張の更新を待たずに選べます。
 
 ZIP だけ使う場合は [`addon/copilotselecter-chrome.zip`](addon/copilotselecter-chrome.zip) を解凍し、手順 2 以降と同じです。解凍先に `manifest.json` があるフォルダを選んでください。
 

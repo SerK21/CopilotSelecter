@@ -108,6 +108,29 @@ export function getPresetById(modelId) {
   return MODEL_PRESETS.find((preset) => preset.id === modelId) ?? MODEL_PRESETS[0];
 }
 
+export function presetFromCustom(entry) {
+  const matchText = String(entry?.matchText || "").replace(/\s+/g, " ").trim();
+  const parentText = String(entry?.parentText || "").replace(/\s+/g, " ").trim();
+  const name = String(entry?.name || matchText).replace(/\s+/g, " ").trim() || matchText;
+  return {
+    id: entry?.id || "custom",
+    name,
+    description: "自分で追加したモデル",
+    modeKey: null,
+    parentLabels: parentText ? [parentText] : [],
+    matchLabels: matchText ? [matchText] : [],
+    custom: true,
+  };
+}
+
+export function resolvePreset(modelId, customModels = []) {
+  const custom = customModels.find((item) => item?.id === modelId);
+  if (custom) {
+    return presetFromCustom(custom);
+  }
+  return getPresetById(modelId);
+}
+
 export function normalizeLabel(text) {
   return (text ?? "").replace(/\s+/g, " ").trim().toLowerCase();
 }
@@ -119,7 +142,7 @@ export function labelMatches(label, patterns, excludeLabels = []) {
 const GENERIC_SELECTOR_LABEL = /^(モデル\s*セレクター|model selector|select (a )?model|choose model)$/i;
 const LOADING_LABEL = /読み込|loading|spinner|please wait|^\s*[.…・…]+\s*$/i;
 const MODEL_READY_HINT =
-  /自動|auto|smart|スマート|クイック応答|think deeper|より深く|gpt\s*5|claude|sonnet|opus|quick response/i;
+  /自動|auto|smart|スマート|クイック応答|think deeper|より深く|gpt\s*\d|claude|sonnet|opus|sol|quick response/i;
 const MENU_READY_HINT =
   /自動|auto|smart|gpt|claude|think deeper|クイック応答|sonnet|opus|openai|anthropic/i;
 

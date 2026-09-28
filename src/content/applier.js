@@ -11,6 +11,7 @@
 
   const {
     getPresetById,
+    resolvePreset,
     labelMatches,
     scoreLabelMatch,
     normalizeLabel,
@@ -494,14 +495,14 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
     const trigger = findPickerTrigger();
     if (!isPickerReady(trigger) || !isPickerStable(trigger)) {
       await report("waiting-for-selector", {
-        modelId: getPresetById(settings.modelId).id,
+        modelId: resolvePreset(settings.modelId, settings.customModels).id,
         trigger: trigger ? visibleText(trigger) : "",
         ready: isPickerReady(trigger),
       });
       return;
     }
 
-    const preset = getPresetById(settings.modelId);
+    const preset = resolvePreset(settings.modelId, settings.customModels);
     const signature = `${preset.id}:${location.href}`;
     if (signature === lastAppliedSignature) {
       return;
@@ -560,7 +561,7 @@ html[data-cdm-silent] [class*="fui-MenuList"] {
         if (Date.now() - started > 45000) {
           window.clearInterval(waitTimer);
           report("picker-timeout", {
-            modelId: getPresetById(settingsCache.modelId).id,
+            modelId: resolvePreset(settingsCache.modelId, settingsCache.customModels).id,
             trigger: trigger ? visibleText(trigger) : "",
           });
         }
